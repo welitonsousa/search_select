@@ -84,7 +84,9 @@ SearchSelect<String>(
 
   - `maxBuildItemsIList` <br>
   use this to limit the number of items to be displayed in the list if the list is too long, it will be cut off. Use null to display all items
-
+  
+  - `maxHeight` <br>
+  The maximum height size of the selection menu. default is 40% of your screen
 
 <br>
 <br>
