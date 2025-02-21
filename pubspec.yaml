@@ -1,6 +1,6 @@
 name: search_select
 description: "A Flutter widget for search and multi-select functionality with dropdown list."
-version: 1.0.2
+version: 1.0.3
 homepage: https://welitonsousa.vercel.app/
 repository: https://github.com/welitonsousa/search_select
 issue_tracker: https://github.com/welitonsousa/search_select/issues

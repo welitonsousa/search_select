@@ -176,6 +176,8 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
       },
       menuChildren: [
         TextField(
+          autocorrect: false,
+          autofocus: widget.autoFocus,
           controller: searchController,
           onChanged: (value) {
             setState(() {});

@@ -90,7 +90,7 @@ SearchSelect<String>(
 <br>
 
 <p align="center">
-  <img src="https://github.com/welitonsousa.png" width="60" height="60" style="border-radius: 50%;"/>
+  <img src="https://github.com/welitonsousa.png" width="60" height="60" style="border-radius: 100px;"/>
 </p>
 
 <p align="center">
