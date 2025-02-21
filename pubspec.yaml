@@ -1,6 +1,6 @@
 name: search_select
 description: "Flutter search select/multi-select widget"
-version: 1.0.0
+version: 1.0.1
 homepage: https://welitonsousa.vercel.app/
 repository: https://github.com/welitonsousa/search_select
 issue_tracker: https://github.com/welitonsousa/search_select/issues
