@@ -7,9 +7,9 @@ This package provides a multi-select widget that allows users to search and sele
 ### Screenshots
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/welitonsousa/search_select/screenshots/menu.png" width="32%"/>
-  <img src="https://raw.githubusercontent.com/welitonsousa/search_select/screenshots/open-multiple.png" width="32%"/>
-  <img src="https://raw.githubusercontent.com/welitonsousa/search_select/screenshots/open-single.png" width="32%"/>
+  <img src="https://raw.githubusercontent.com/welitonsousa/search_select/refs/heads/main/screenshots/menu.png" width="32%"/>
+  <img src="https://raw.githubusercontent.com/welitonsousa/search_select/refs/heads/main/screenshots/open-multiple.png" width="32%"/>
+  <img src="https://raw.githubusercontent.com/welitonsousa/search_select/refs/heads/main/screenshots/open-single.png" width="32%"/>
 </p>
 
 ### Example
