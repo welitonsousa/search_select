@@ -1,7 +1,3 @@
-## 1.0.0
+## 1.0.2
 
 * TODO: First Release
-
-## 1.0.1
-
-* TODO: First Release 2 

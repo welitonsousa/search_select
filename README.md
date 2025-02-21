@@ -82,11 +82,17 @@ SearchSelect<String>(
   - `onClickWhenFullItemsSelected`
   <br>A callback function to be called when `maxSelections` is reached.
 
-
+  - `maxBuildItemsIList` <br>
+  use this to limit the number of items to be displayed in the list if the list is too long, it will be cut off. Use null to display all items
 
 
 <br>
 <br>
+
+<p align="center">
+  <img src="https://github.com/welitonsousa.png" width="60" height="60" style="border-radius: 50%;"/>
+</p>
+
 <p align="center">
    Feito com ❤️ by <a target="_blank" href="https://welitonsousa.shop"><b>Weliton Sousa</b></a>
 </p>

@@ -75,6 +75,11 @@ class SearchSelect<T> extends StatefulWidget {
   /// Callback function to be called when `maxSelections` is reached.
   final void Function()? onClickWhenFullItemsSelected;
 
+  /// use this to limit the number of items to be displayed
+  /// in the list if the list is too long,
+  /// it will be cut off. Use null to display all items
+  final int? maxBuildItemsIList;
+
   const SearchSelect({
     super.key,
     required this.items,
@@ -94,6 +99,7 @@ class SearchSelect<T> extends StatefulWidget {
     this.containerMinHeight = 50,
     this.maxSelections,
     this.onClickWhenFullItemsSelected,
+    this.maxBuildItemsIList,
     this.itemsStyleType = ItemsStyleType.chip,
   });
 
@@ -131,9 +137,14 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
 
   List<T> get filteredItems {
     final search = searchController.text.toLowerCase();
-    return widget.items
+    final res = widget.items
         .where((element) => element.toString().toLowerCase().contains(search))
         .toList();
+    if (widget.maxBuildItemsIList == null) return res;
+    final isCutOff = res.length > widget.maxBuildItemsIList!;
+
+    if (!isCutOff) return res;
+    return res.sublist(0, widget.maxBuildItemsIList!);
   }
 
   void tapItem(T item) {
@@ -141,16 +152,16 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
       return widget.onClickWhenFullItemsSelected?.call();
     }
 
-    if (!widget.allowMultiple) selecteds.clear();
+    if (!widget.allowMultiple) {
+      menuController.close();
+      selecteds.clear();
+    }
 
     final isSelected = selecteds.contains(item);
     if (isSelected) selecteds.remove(item);
     if (!isSelected) selecteds.add(item);
 
-    if (widget.maxSelections != null &&
-        widget.maxSelections == selecteds.length) {
-      menuController.close();
-    }
+    if (widget.maxSelections == selecteds.length) menuController.close();
 
     setState(() {});
   }
@@ -194,12 +205,14 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
                         else if (!widget.allowMultiple)
                           ListTile(
                             title: Text(item.toString()),
+                            selected: checked,
                             onTap: () => tapItem(item),
                           )
                         else
                           ListTile(
                             title: Text(item.toString()),
                             onTap: () => tapItem(item),
+                            selected: checked,
                             leading: checked
                                 ? Icon(Icons.check_box)
                                 : Icon(Icons.check_box_outline_blank),
@@ -281,7 +294,7 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
               AnimatedPositioned(
                 duration: Duration(milliseconds: 100),
                 top: selecteds.isEmpty
-                    ? (widget.containerMinHeight / 2) - 4
+                    ? (widget.containerMinHeight / 2) - 6
                     : -3,
                 child: Padding(
                   padding: const EdgeInsets.only(left: 8),
