@@ -150,20 +150,20 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
 
   void tapItem(T item) {
     if (widget.maxSelections == selects.length) {
-      return widget.onClickWhenFullItemsSelected?.call();
+      widget.onClickWhenFullItemsSelected?.call();
+    } else {
+      if (!widget.allowMultiple) {
+        menuController.close();
+        selects.clear();
+      }
+
+      final isSelected = selects.contains(item);
+      if (isSelected) selects.remove(item);
+      if (!isSelected) selects.add(item);
+
+      if (widget.maxSelections == selects.length) menuController.close();
     }
-
-    if (!widget.allowMultiple) {
-      menuController.close();
-      selects.clear();
-    }
-
-    final isSelected = selects.contains(item);
-    if (isSelected) selects.remove(item);
-    if (!isSelected) selects.add(item);
-
-    if (widget.maxSelections == selects.length) menuController.close();
-
+    widget.onChange?.call(selects);
     setState(() {});
   }
 
