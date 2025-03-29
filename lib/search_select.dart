@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 enum ItemsStyleType {
@@ -80,6 +82,12 @@ class SearchSelect<T> extends StatefulWidget {
   /// The maximum height size of the selection menu.
   final double? maxHeight;
 
+  /// The controller for the menu.
+  final Color? labelBackgroundColor;
+
+  /// The controller for the menu.
+  final MenuController? menuController;
+
   const SearchSelect({
     super.key,
     required this.items,
@@ -102,6 +110,8 @@ class SearchSelect<T> extends StatefulWidget {
     this.maxBuildItemsIList,
     this.maxHeight,
     this.itemsStyleType = ItemsStyleType.chip,
+    this.labelBackgroundColor,
+    this.menuController,
   });
 
   @override
@@ -109,15 +119,18 @@ class SearchSelect<T> extends StatefulWidget {
 }
 
 class _SearchSelectState<T> extends State<SearchSelect<T>> {
-  final menuController = MenuController();
+  late final MenuController menuController;
   final searchController = TextEditingController();
   final scrollController = ScrollController();
   final selects = <T>[];
+  final searchFocusNode = FocusNode();
 
   @override
   void dispose() {
     searchController.dispose();
     scrollController.dispose();
+    searchFocusNode.removeListener(searchFocusListener);
+    searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -125,6 +138,8 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
   void initState() {
     selects.clear();
     selects.addAll(widget.selectedItems);
+    menuController = widget.menuController ?? MenuController();
+    searchFocusNode.addListener(searchFocusListener);
     super.initState();
   }
 
@@ -134,6 +149,17 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
     selects.addAll(widget.selectedItems);
     setState(() {});
     super.didUpdateWidget(oldWidget);
+  }
+
+  void searchFocusListener() {
+    setState(() {});
+    Timer.periodic(Duration(milliseconds: 10), (t) {
+      setState(() {});
+      if (!searchFocusNode.hasFocus) t.cancel();
+      if (t.tick > 60) {
+        t.cancel();
+      }
+    });
   }
 
   List<T> get filteredItems {
@@ -167,6 +193,39 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
     setState(() {});
   }
 
+  bool get isDialog {
+    return ModalRoute.of(context) is DialogRoute;
+  }
+
+  Color getBackgroundColor(BuildContext c) {
+    if (widget.labelBackgroundColor != null) {
+      return widget.labelBackgroundColor!;
+    }
+    if (isDialog) return getEffectiveDialogColor(c);
+
+    return Theme.of(c).scaffoldBackgroundColor;
+  }
+
+  Color getEffectiveDialogColor(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final useM3 = theme.useMaterial3;
+    // Obtém a cor base do Dialog
+    Color baseColor = theme.colorScheme.surface; // Para Material 3
+    if (!theme.useMaterial3) {
+      baseColor = theme.dialogBackgroundColor; // Para Material 2
+    }
+
+    if (useM3 && isDarkMode) {
+      return theme.colorScheme.surfaceContainerHigh;
+    } else if (useM3 && !isDarkMode) {
+      return ElevationOverlay.applySurfaceTint(
+          baseColor, theme.colorScheme.surfaceTint, 4.0);
+    }
+
+    return baseColor;
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -186,6 +245,7 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
         menuChildren: [
           TextField(
             autocorrect: false,
+            focusNode: searchFocusNode,
             autofocus: widget.autoFocus,
             controller: searchController,
             onChanged: (value) {
@@ -209,6 +269,7 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
                   children: filteredItems.map((item) {
                     final checked = selects.contains(item);
                     return GestureDetector(
+                      onTap: () => tapItem(item),
                       child: Column(
                         children: [
                           if (widget.itemBuilder != null)
@@ -236,7 +297,13 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
               )),
         ],
         child: GestureDetector(
-          onTap: menuController.open,
+          onTap: () {
+            if (menuController.isOpen) {
+              menuController.close();
+            } else {
+              menuController.open();
+            }
+          },
           child: Stack(
             children: [
               Padding(
@@ -315,7 +382,7 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
                   child: Padding(
                     padding: const EdgeInsets.only(left: 8),
                     child: Container(
-                      color: Theme.of(context).scaffoldBackgroundColor,
+                      color: getBackgroundColor(context),
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: Text(
                         widget.label,
