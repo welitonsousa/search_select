@@ -17,3 +17,6 @@
 
 ## 1.0.8
 * Use correct label background when widget is contained in a dialog
+
+## 1.0.9
+* Add optional field validator

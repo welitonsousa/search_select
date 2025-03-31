@@ -88,6 +88,8 @@ class SearchSelect<T> extends StatefulWidget {
   /// The controller for the menu.
   final MenuController? menuController;
 
+  final String? Function(List<T>)? validator;
+
   const SearchSelect({
     super.key,
     required this.items,
@@ -112,6 +114,7 @@ class SearchSelect<T> extends StatefulWidget {
     this.itemsStyleType = ItemsStyleType.chip,
     this.labelBackgroundColor,
     this.menuController,
+    this.validator,
   });
 
   @override
@@ -174,7 +177,7 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
     return res.sublist(0, widget.maxBuildItemsIList!);
   }
 
-  void tapItem(T item) {
+  void tapItem(T item, FormFieldState? state) {
     if (widget.maxSelections == selects.length) {
       widget.onClickWhenFullItemsSelected?.call();
     } else {
@@ -190,6 +193,7 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
       if (widget.maxSelections == selects.length) menuController.close();
     }
     widget.onChange?.call(selects);
+    state?.validate();
     setState(() {});
   }
 
@@ -228,179 +232,209 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constrains) => MenuAnchor(
-        controller: menuController,
-        style: MenuStyle(
-          elevation: WidgetStateProperty.all(100),
-          maximumSize: WidgetStateProperty.all(Size(
-            constrains.maxWidth,
-            widget.maxHeight ?? (MediaQuery.of(context).size.height * 0.4),
-          )),
-        ),
-        onClose: () {
-          searchController.clear();
-          widget.onChange?.call(selects);
+    return FormField<List<T>>(
+        autovalidateMode: AutovalidateMode.onUserInteraction,
+        validator: (v) {
+          if (widget.validator == null) return null;
+          return widget.validator!(selects);
         },
-        menuChildren: [
-          TextField(
-            autocorrect: false,
-            focusNode: searchFocusNode,
-            autofocus: widget.autoFocus,
-            controller: searchController,
-            onChanged: (value) {
-              setState(() {});
-            },
-            decoration: InputDecoration(
-              hintText: widget.searchText,
-              prefixIcon: Icon(Icons.search),
-            ),
-          ),
-          Container(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.4,
-                minWidth: widget.useMaxWidthSpace
-                    ? MediaQuery.of(context).size.width
-                    : 0,
+        builder: (state) {
+          return LayoutBuilder(
+            builder: (context, constrains) => MenuAnchor(
+              controller: menuController,
+              style: MenuStyle(
+                elevation: WidgetStateProperty.all(100),
+                maximumSize: WidgetStateProperty.all(Size(
+                  constrains.maxWidth,
+                  widget.maxHeight ??
+                      (MediaQuery.of(context).size.height * 0.4),
+                )),
               ),
-              child: SingleChildScrollView(
-                controller: scrollController,
-                child: Column(
-                  children: filteredItems.map((item) {
-                    final checked = selects.contains(item);
-                    return GestureDetector(
-                      onTap: () => tapItem(item),
-                      child: Column(
-                        children: [
-                          if (widget.itemBuilder != null)
-                            widget.itemBuilder!.call(item, checked)
-                          else if (!widget.allowMultiple)
-                            ListTile(
-                              title: Text(item.toString()),
-                              selected: checked,
-                              onTap: () => tapItem(item),
-                            )
-                          else
-                            ListTile(
-                              title: Text(item.toString()),
-                              onTap: () => tapItem(item),
-                              selected: checked,
-                              leading: checked
-                                  ? Icon(Icons.check_box)
-                                  : Icon(Icons.check_box_outline_blank),
-                            ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-              )),
-        ],
-        child: GestureDetector(
-          onTap: () {
-            if (menuController.isOpen) {
-              menuController.close();
-            } else {
-              menuController.open();
-            }
-          },
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 5),
-                child: Container(
-                    constraints: BoxConstraints(
-                      minHeight: widget.containerMinHeight,
-                      minWidth: MediaQuery.of(context).size.width,
-                    ),
-                    decoration: widget.decoration ??
-                        BoxDecoration(
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(
-                            color: Theme.of(context).dividerColor,
-                          ),
-                        ),
-                    padding: EdgeInsets.only(
-                      left: 4,
-                      right: 4,
-                      top: widget.everShowLabel ? 10 : 4,
-                      bottom: 4,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (widget.itemsStyleType ==
-                            ItemsStyleType.textEllipsis)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: Text(
-                              selects.join(', '),
-                              style: widget.labelStyle,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        if (widget.itemsStyleType == ItemsStyleType.text)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: Text(selects.join(', '),
-                                style: widget.labelStyle),
-                          ),
-                        if (widget.itemsStyleType == ItemsStyleType.chip)
-                          Wrap(
-                            runSpacing: 5,
-                            spacing: 5,
-                            children: [
-                              ...selects.map((e) {
-                                if (widget.selectedItemBuilder != null) {
-                                  return widget.selectedItemBuilder!.call(e);
-                                }
-                                return RawChip(
-                                  onDeleted: widget.showDeleteButton
-                                      ? () {
-                                          selects.remove(e);
-                                          widget.onChange?.call(selects);
-                                          setState(() {});
-                                        }
-                                      : null,
-                                  deleteIcon: widget.showDeleteButton
-                                      ? const Icon(Icons.close)
-                                      : null,
-                                  label: Text(e.toString()),
-                                );
-                              })
-                            ],
-                          ),
-                      ],
-                    )),
-              ),
-              if (widget.everShowLabel || selects.isEmpty)
-                AnimatedPositioned(
-                  duration: Duration(milliseconds: 100),
-                  top: selects.isEmpty
-                      ? (widget.containerMinHeight / 2) - 6
-                      : -3,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: Container(
-                      color: getBackgroundColor(context),
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Text(
-                        widget.label,
-                        style: widget.labelStyle?.copyWith(
-                              fontSize: widget.labelStyle?.fontSize ??
-                                  15 - (selects.isNotEmpty ? 3 : 0),
-                            ) ??
-                            TextStyle(
-                              fontSize: 15 - (selects.isNotEmpty ? 3 : 0),
-                            ),
-                      ),
-                    ),
+              onClose: () {
+                searchController.clear();
+                widget.onChange?.call(selects);
+              },
+              menuChildren: [
+                TextField(
+                  autocorrect: false,
+                  focusNode: searchFocusNode,
+                  autofocus: widget.autoFocus,
+                  controller: searchController,
+                  onChanged: (value) {
+                    setState(() {});
+                  },
+                  decoration: InputDecoration(
+                    hintText: widget.searchText,
+                    prefixIcon: Icon(Icons.search),
                   ),
                 ),
-            ],
-          ),
-        ),
-      ),
-    );
+                Container(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.4,
+                      minWidth: widget.useMaxWidthSpace
+                          ? MediaQuery.of(context).size.width
+                          : 0,
+                    ),
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      child: Column(
+                        children: filteredItems.map((item) {
+                          final checked = selects.contains(item);
+                          return GestureDetector(
+                            onTap: () => tapItem(item, state),
+                            child: Column(
+                              children: [
+                                if (widget.itemBuilder != null)
+                                  widget.itemBuilder!.call(item, checked)
+                                else if (!widget.allowMultiple)
+                                  ListTile(
+                                    title: Text(item.toString()),
+                                    selected: checked,
+                                    onTap: () => tapItem(item, state),
+                                  )
+                                else
+                                  ListTile(
+                                    title: Text(item.toString()),
+                                    onTap: () => tapItem(item, state),
+                                    selected: checked,
+                                    leading: checked
+                                        ? Icon(Icons.check_box)
+                                        : Icon(Icons.check_box_outline_blank),
+                                  ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    )),
+              ],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      if (menuController.isOpen) {
+                        menuController.close();
+                      } else {
+                        menuController.open();
+                      }
+                    },
+                    child: Stack(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 5),
+                          child: Container(
+                              constraints: BoxConstraints(
+                                minHeight: widget.containerMinHeight,
+                                minWidth: MediaQuery.of(context).size.width,
+                              ),
+                              decoration: widget.decoration ??
+                                  BoxDecoration(
+                                    borderRadius: BorderRadius.circular(5),
+                                    border: Border.all(
+                                      color: Theme.of(context).dividerColor,
+                                    ),
+                                  ),
+                              padding: EdgeInsets.only(
+                                left: 4,
+                                right: 4,
+                                top: widget.everShowLabel ? 10 : 4,
+                                bottom: 4,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (widget.itemsStyleType ==
+                                      ItemsStyleType.textEllipsis)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 4),
+                                      child: Text(
+                                        selects.join(', '),
+                                        style: widget.labelStyle,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  if (widget.itemsStyleType ==
+                                      ItemsStyleType.text)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 4),
+                                      child: Text(selects.join(', '),
+                                          style: widget.labelStyle),
+                                    ),
+                                  if (widget.itemsStyleType ==
+                                      ItemsStyleType.chip)
+                                    Wrap(
+                                      runSpacing: 5,
+                                      spacing: 5,
+                                      children: [
+                                        ...selects.map((e) {
+                                          if (widget.selectedItemBuilder !=
+                                              null) {
+                                            return widget.selectedItemBuilder!
+                                                .call(e);
+                                          }
+                                          return RawChip(
+                                            onDeleted: widget.showDeleteButton
+                                                ? () {
+                                                    selects.remove(e);
+                                                    widget.onChange
+                                                        ?.call(selects);
+                                                    state.validate();
+                                                    setState(() {});
+                                                  }
+                                                : null,
+                                            deleteIcon: widget.showDeleteButton
+                                                ? const Icon(Icons.close)
+                                                : null,
+                                            label: Text(e.toString()),
+                                          );
+                                        })
+                                      ],
+                                    ),
+                                ],
+                              )),
+                        ),
+                        if (widget.everShowLabel || selects.isEmpty)
+                          AnimatedPositioned(
+                            duration: Duration(milliseconds: 100),
+                            top: selects.isEmpty
+                                ? (widget.containerMinHeight / 2) - 6
+                                : -3,
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 8),
+                              child: Container(
+                                color: getBackgroundColor(context),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 4),
+                                child: Text(
+                                  widget.label,
+                                  style: widget.labelStyle?.copyWith(
+                                        fontSize: widget.labelStyle?.fontSize ??
+                                            15 - (selects.isNotEmpty ? 3 : 0),
+                                      ) ??
+                                      TextStyle(
+                                        fontSize:
+                                            15 - (selects.isNotEmpty ? 3 : 0),
+                                      ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  if (state.hasError)
+                    Text(state.errorText ?? 'asd',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                          fontSize: 12,
+                        )),
+                ],
+              ),
+            ),
+          );
+        });
   }
 }
