@@ -20,3 +20,9 @@
 
 ## 1.0.9
 * Add optional field validator
+
+## 1.0.10
+* Add option field selectedItem
+* Add option field onSingleChange
+* Add option field emptyLabel
+* Add option field showEmptyLabel | default is true

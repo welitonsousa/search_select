@@ -26,10 +26,14 @@ class MyApp extends StatelessWidget {
                   "item 03",
                   "item 04",
                   "item 05",
+                  "item 06",
+                  "item 07",
+                  "item 08",
                 ],
                 label: 'Multiple selection',
-                allowMultiple: true,
+                allowMultiple: false,
                 selectedItems: [],
+                selectedItem: "item 08",
                 validator: (v) {
                   if (v.isEmpty) return 'Please select at least one item';
                   return null;

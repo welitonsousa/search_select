@@ -88,6 +88,28 @@ SearchSelect<String>(
   - `maxHeight` <br>
   The maximum height size of the selection menu. default is 40% of your screen
 
+  - `menuController` <br>
+  param to controller the menu, use this to open and close the menu programmatically
+
+  - `labelBackgroundColor` <br>
+  The background color of the label.
+
+  - `validator` <br>
+  A function to validate the selected items. It should return a string if validation fails, or null if validation passes.
+
+  - `selectedItem` <br>
+  The item that should be selected by default when the widget is first built. This is useful for single selection mode.
+
+  - `onSingleChange` <br>
+  A callback function to be called when the selected item changes in single selection mode. This is useful for updating the state of the widget when a new item is selected.
+
+  - `emptyLabel` <br>
+  The label to be displayed when there are no selected items. This is useful for providing feedback to the user when no items are selected.
+
+  - `showEmptyLabel` <br>
+  A boolean value that determines whether the empty label should be shown or not. This is useful for providing feedback to the user when no items are selected.
+
+
 <br>
 <br>
 

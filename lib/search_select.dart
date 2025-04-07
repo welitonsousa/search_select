@@ -88,34 +88,51 @@ class SearchSelect<T> extends StatefulWidget {
   /// The controller for the menu.
   final MenuController? menuController;
 
+  /// A function to validate the selected items.
   final String? Function(List<T>)? validator;
 
-  const SearchSelect({
-    super.key,
-    required this.items,
-    this.selectedItems = const [],
-    this.label = 'Select',
-    this.searchText,
-    this.onChange,
-    this.itemBuilder,
-    this.autoFocus = false,
-    this.decoration,
-    this.useMaxWidthSpace = true,
-    this.labelStyle,
-    this.selectedItemBuilder,
-    this.showDeleteButton = true,
-    this.everShowLabel = true,
-    this.allowMultiple = true,
-    this.containerMinHeight = 50,
-    this.maxSelections,
-    this.onClickWhenFullItemsSelected,
-    this.maxBuildItemsIList,
-    this.maxHeight,
-    this.itemsStyleType = ItemsStyleType.chip,
-    this.labelBackgroundColor,
-    this.menuController,
-    this.validator,
-  });
+  final T? selectedItem;
+
+  /// Invoked when a single item is selected.
+  /// This is used when `allowMultiple` is false.
+  final Function(T?)? onSingleChange;
+
+  /// element to be displayed when the list is empty
+  final String? emptyLabel;
+
+  /// show empty label
+  /// when the list is empty
+  final bool showEmptyLabel;
+
+  const SearchSelect(
+      {super.key,
+      required this.items,
+      this.selectedItems = const [],
+      this.label = 'Select',
+      this.searchText,
+      this.onChange,
+      this.itemBuilder,
+      this.autoFocus = false,
+      this.decoration,
+      this.useMaxWidthSpace = true,
+      this.labelStyle,
+      this.selectedItemBuilder,
+      this.showDeleteButton = true,
+      this.everShowLabel = true,
+      this.allowMultiple = true,
+      this.containerMinHeight = 50,
+      this.maxSelections,
+      this.onClickWhenFullItemsSelected,
+      this.maxBuildItemsIList,
+      this.maxHeight,
+      this.itemsStyleType = ItemsStyleType.chip,
+      this.labelBackgroundColor,
+      this.menuController,
+      this.validator,
+      this.selectedItem,
+      this.onSingleChange,
+      this.emptyLabel,
+      this.showEmptyLabel = true});
 
   @override
   State<SearchSelect<T>> createState() => _SearchSelectState<T>();
@@ -139,16 +156,24 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
 
   @override
   void initState() {
-    selects.clear();
-    selects.addAll(widget.selectedItems);
     menuController = widget.menuController ?? MenuController();
+
+    selects.clear();
+    if (widget.selectedItem != null) {
+      selects.add(widget.selectedItem as T);
+    }
+    selects.addAll(widget.selectedItems);
     searchFocusNode.addListener(searchFocusListener);
+
     super.initState();
   }
 
   @override
   void didUpdateWidget(covariant SearchSelect<T> oldWidget) {
     selects.clear();
+    if (widget.selectedItem != null) {
+      selects.add(widget.selectedItem as T);
+    }
     selects.addAll(widget.selectedItems);
     setState(() {});
     super.didUpdateWidget(oldWidget);
@@ -193,8 +218,15 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
       if (widget.maxSelections == selects.length) menuController.close();
     }
     widget.onChange?.call(selects);
+    selectSingleItem();
     state?.validate();
     setState(() {});
+  }
+
+  void selectSingleItem() {
+    if (widget.onSingleChange != null && !widget.allowMultiple) {
+      widget.onSingleChange!(selects.isNotEmpty ? selects.first : null);
+    }
   }
 
   bool get isDialog {
@@ -278,33 +310,46 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
                     child: SingleChildScrollView(
                       controller: scrollController,
                       child: Column(
-                        children: filteredItems.map((item) {
-                          final checked = selects.contains(item);
-                          return GestureDetector(
-                            onTap: () => tapItem(item, state),
-                            child: Column(
-                              children: [
-                                if (widget.itemBuilder != null)
-                                  widget.itemBuilder!.call(item, checked)
-                                else if (!widget.allowMultiple)
-                                  ListTile(
-                                    title: Text(item.toString()),
-                                    selected: checked,
-                                    onTap: () => tapItem(item, state),
-                                  )
-                                else
-                                  ListTile(
-                                    title: Text(item.toString()),
-                                    onTap: () => tapItem(item, state),
-                                    selected: checked,
-                                    leading: checked
-                                        ? Icon(Icons.check_box)
-                                        : Icon(Icons.check_box_outline_blank),
-                                  ),
-                              ],
+                        children: [
+                          ...filteredItems.map((item) {
+                            final checked = selects.contains(item);
+                            return GestureDetector(
+                              onTap: () => tapItem(item, state),
+                              child: Column(
+                                children: [
+                                  if (widget.itemBuilder != null)
+                                    widget.itemBuilder!.call(item, checked)
+                                  else if (!widget.allowMultiple)
+                                    ListTile(
+                                      title: Text(item.toString()),
+                                      selected: checked,
+                                      onTap: () => tapItem(item, state),
+                                    )
+                                  else
+                                    ListTile(
+                                      title: Text(item.toString()),
+                                      onTap: () => tapItem(item, state),
+                                      selected: checked,
+                                      leading: checked
+                                          ? Icon(Icons.check_box)
+                                          : Icon(Icons.check_box_outline_blank),
+                                    ),
+                                ],
+                              ),
+                            );
+                          }),
+                          if (filteredItems.isEmpty && widget.showEmptyLabel)
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                widget.emptyLabel ?? 'Nenhum item encontrado',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.outline,
+                                ),
+                              ),
                             ),
-                          );
-                        }).toList(),
+                          if (filteredItems.isNotEmpty) SizedBox(height: 60),
+                        ],
                       ),
                     )),
               ],
@@ -381,6 +426,7 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
                                                     selects.remove(e);
                                                     widget.onChange
                                                         ?.call(selects);
+                                                    selectSingleItem();
                                                     state.validate();
                                                     setState(() {});
                                                   }
