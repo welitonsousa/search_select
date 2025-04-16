@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:search_select/debounce.dart';
 
 enum ItemsStyleType {
   text,
@@ -28,9 +29,6 @@ class SearchSelect<T> extends StatefulWidget {
 
   /// The label to be displayed for the selection widget.
   final String label;
-
-  /// The placeholder text to be displayed in the search field.
-  final String? searchText;
 
   /// The style to be applied to the label text.
   final TextStyle? labelStyle;
@@ -104,35 +102,59 @@ class SearchSelect<T> extends StatefulWidget {
   /// when the list is empty
   final bool showEmptyLabel;
 
-  const SearchSelect(
-      {super.key,
-      required this.items,
-      this.selectedItems = const [],
-      this.label = 'Select',
-      this.searchText,
-      this.onChange,
-      this.itemBuilder,
-      this.autoFocus = false,
-      this.decoration,
-      this.useMaxWidthSpace = true,
-      this.labelStyle,
-      this.selectedItemBuilder,
-      this.showDeleteButton = true,
-      this.everShowLabel = true,
-      this.allowMultiple = true,
-      this.containerMinHeight = 50,
-      this.maxSelections,
-      this.onClickWhenFullItemsSelected,
-      this.maxBuildItemsIList,
-      this.maxHeight,
-      this.itemsStyleType = ItemsStyleType.chip,
-      this.labelBackgroundColor,
-      this.menuController,
-      this.validator,
-      this.selectedItem,
-      this.onSingleChange,
-      this.emptyLabel,
-      this.showEmptyLabel = true});
+  /// The placeholder text to be displayed in the search field.
+  final String? searchHint;
+
+  /// A function to be called when the search field is used.
+  /// Use this function to search for items asynchronously.
+  /// return your new list of items
+  final Future<List<T>?> Function(String q)? searchAsync;
+
+  /// The duration to debounce the search input.
+  final Duration searchAsyncDebounceDuration;
+
+  /// A widget to be displayed while searching.
+  final Widget? searchLoadingWidget;
+
+  /// if searchAsync is null | applyLocalSearch is true
+  /// if searchAsync is not null | applyLocalSearch is false
+  /// use this parameter to change this behavior
+  final bool applyLocalSearch;
+
+  const SearchSelect({
+    super.key,
+    required this.items,
+    this.selectedItems = const [],
+    this.label = 'Select',
+    this.onChange,
+    this.itemBuilder,
+    this.autoFocus = true,
+    this.decoration,
+    this.useMaxWidthSpace = true,
+    this.labelStyle,
+    this.selectedItemBuilder,
+    this.showDeleteButton = true,
+    this.everShowLabel = true,
+    this.allowMultiple = true,
+    this.containerMinHeight = 50,
+    this.maxSelections,
+    this.onClickWhenFullItemsSelected,
+    this.maxBuildItemsIList,
+    this.maxHeight,
+    this.itemsStyleType = ItemsStyleType.chip,
+    this.labelBackgroundColor,
+    this.menuController,
+    this.validator,
+    this.selectedItem,
+    this.onSingleChange,
+    this.emptyLabel,
+    this.searchHint,
+    this.showEmptyLabel = true,
+    this.searchAsync,
+    this.searchLoadingWidget,
+    this.searchAsyncDebounceDuration = const Duration(milliseconds: 500),
+    bool? applyLocalSearch,
+  }) : applyLocalSearch = applyLocalSearch ?? searchAsync == null;
 
   @override
   State<SearchSelect<T>> createState() => _SearchSelectState<T>();
@@ -144,6 +166,9 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
   final scrollController = ScrollController();
   final selects = <T>[];
   final searchFocusNode = FocusNode();
+  late final Debounce debounce =
+      Debounce(duration: widget.searchAsyncDebounceDuration);
+  bool loading = false;
 
   @override
   void dispose() {
@@ -190,7 +215,23 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
     });
   }
 
+  void runGetAsyncItems(String q) {
+    if (widget.searchAsync == null) return;
+    if (loading) return;
+    loading = true;
+    debounce(() async {
+      final res = await widget.searchAsync!(q);
+      widget.items.clear();
+      if (res != null) {
+        widget.items.addAll(res);
+      }
+      loading = false;
+      setState(() {});
+    });
+  }
+
   List<T> get filteredItems {
+    if (!widget.applyLocalSearch) return widget.items;
     final search = searchController.text.toLowerCase();
     final res = widget.items
         .where((element) => element.toString().toLowerCase().contains(search))
@@ -293,65 +334,87 @@ class _SearchSelectState<T> extends State<SearchSelect<T>> {
                   autofocus: widget.autoFocus,
                   controller: searchController,
                   onChanged: (value) {
+                    runGetAsyncItems(value);
                     setState(() {});
                   },
                   decoration: InputDecoration(
-                    hintText: widget.searchText,
+                    hintText: widget.searchHint ?? 'Pesquisar',
                     prefixIcon: Icon(Icons.search),
                   ),
                 ),
-                Container(
+                if (loading)
+                  Container(
                     constraints: BoxConstraints(
-                      maxHeight: MediaQuery.of(context).size.height * 0.4,
                       minWidth: widget.useMaxWidthSpace
                           ? MediaQuery.of(context).size.width
                           : 0,
                     ),
-                    child: SingleChildScrollView(
-                      controller: scrollController,
-                      child: Column(
-                        children: [
-                          ...filteredItems.map((item) {
-                            final checked = selects.contains(item);
-                            return GestureDetector(
-                              onTap: () => tapItem(item, state),
-                              child: Column(
-                                children: [
-                                  if (widget.itemBuilder != null)
-                                    widget.itemBuilder!.call(item, checked)
-                                  else if (!widget.allowMultiple)
-                                    ListTile(
-                                      title: Text(item.toString()),
-                                      selected: checked,
-                                      onTap: () => tapItem(item, state),
-                                    )
-                                  else
-                                    ListTile(
-                                      title: Text(item.toString()),
-                                      onTap: () => tapItem(item, state),
-                                      selected: checked,
-                                      leading: checked
-                                          ? Icon(Icons.check_box)
-                                          : Icon(Icons.check_box_outline_blank),
+                    child: widget.searchLoadingWidget ??
+                        Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
+                  )
+                else
+                  Container(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(context).size.height * 0.4,
+                        minWidth: widget.useMaxWidthSpace
+                            ? MediaQuery.of(context).size.width
+                            : 0,
+                      ),
+                      child: SingleChildScrollView(
+                        controller: scrollController,
+                        child: Column(
+                          children: [
+                            ...filteredItems.map((item) {
+                              final checked = selects.contains(item);
+                              return GestureDetector(
+                                onTap: () => tapItem(item, state),
+                                child: Column(
+                                  children: [
+                                    if (widget.itemBuilder != null)
+                                      widget.itemBuilder!.call(item, checked)
+                                    else if (!widget.allowMultiple)
+                                      ListTile(
+                                        title: Text(item.toString()),
+                                        selected: checked,
+                                        onTap: () => tapItem(item, state),
+                                      )
+                                    else
+                                      ListTile(
+                                        title: Text(item.toString()),
+                                        onTap: () => tapItem(item, state),
+                                        selected: checked,
+                                        leading: checked
+                                            ? Icon(Icons.check_box)
+                                            : Icon(
+                                                Icons.check_box_outline_blank),
+                                      ),
+                                  ],
+                                ),
+                              );
+                            }),
+                            if (filteredItems.isEmpty && widget.showEmptyLabel)
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Center(
+                                  child: Text(
+                                    widget.emptyLabel ??
+                                        'Nenhum item encontrado',
+                                    style: TextStyle(
+                                      color:
+                                          Theme.of(context).colorScheme.outline,
                                     ),
-                                ],
-                              ),
-                            );
-                          }),
-                          if (filteredItems.isEmpty && widget.showEmptyLabel)
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Text(
-                                widget.emptyLabel ?? 'Nenhum item encontrado',
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.outline,
+                                  ),
                                 ),
                               ),
-                            ),
-                          if (filteredItems.isNotEmpty) SizedBox(height: 60),
-                        ],
-                      ),
-                    )),
+                            if (filteredItems.isNotEmpty) SizedBox(height: 60),
+                          ],
+                        ),
+                      )),
               ],
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

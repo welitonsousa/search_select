@@ -22,7 +22,17 @@
 * Add optional field validator
 
 ## 1.0.10
-* Add option field selectedItem
-* Add option field onSingleChange
-* Add option field emptyLabel
-* Add option field showEmptyLabel | default is true
+* Add optional field selectedItem
+* Add optional field onSingleChange
+* Add optional field emptyLabel
+* Add optional field showEmptyLabel | default is true
+
+## 1.0.11
+* Fix update
+* Auto focus on search input default is true
+* Add optional field hintSearch
+* Add optional field searchAsync
+* Add optional field searchLoadingWidget
+* Add optional field applyLocalSearch
+* Add optional field searchAsyncDebounceDuration
+ 

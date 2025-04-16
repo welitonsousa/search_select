@@ -12,6 +12,8 @@ This package provides a multi-select widget that allows users to search and sele
   <img src="https://raw.githubusercontent.com/welitonsousa/search_select/refs/heads/main/screenshots/open-single.png" width="32%"/>
 </p>
 
+
+
 ### Example
 ```dart
 SearchSelect<String>(
@@ -27,6 +29,20 @@ SearchSelect<String>(
 ),
 ```
 
+### Attention
+Use your class's `toString` method to apply the local search function
+```dart
+class UserModel {
+  String name;
+  UserModel(this.name);
+
+  @override
+  String toString() {
+    return name;
+  }
+}
+```
+
 ### All Params
  - `items` (REQUIRED) <br> 
  A list of items to be displayed in the selection.
@@ -37,8 +53,22 @@ SearchSelect<String>(
   - `label`
   <br>The label to be displayed for the selection widget.
 
-  - `searchText`
+  - `hintSearch`
   <br>The placeholder text to be displayed in the search field.
+
+  - `searchAsync`
+  <br> A function to be called when the search field is used. Use this function to search for items asynchronously. return your new list of items
+
+  - `searchLoadingWidget`
+  <br>A widget to be displayed while searching
+
+  - `applyLocalSearch`
+  <br>if searchAsync is null | applyLocalSearch is true
+  <br>if searchAsync is not null | applyLocalSearch is false
+  <br>use this parameter to change this behavior
+
+  - `searchAsyncDebounceDuration`
+  <br>The duration to debounce the search input
 
   - `labelStyle`
   <br>The style to be applied to the label text.
